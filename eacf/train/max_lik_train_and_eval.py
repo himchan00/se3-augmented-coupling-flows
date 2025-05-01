@@ -106,7 +106,7 @@ def get_eval_on_test_batch(params: AugmentedFlowParams,
 
     key, subkey = jax.random.split(key)
     x_augmented, log_p_a = flow.aux_target_sample_n_and_log_prob_apply(params.aux_target, x_test, subkey, K)
-    x_test = jax.tree_map(lambda x: jnp.repeat(x[None, ...], K, axis=0), x_test)
+    x_test = jax.tree_util.tree_map(lambda x: jnp.repeat(x[None, ...], K, axis=0), x_test)
     joint_sample = flow.separate_samples_to_joint(x_test.features, x_test.positions, x_augmented)
 
     log_q = jax.vmap(flow.log_prob_apply, in_axes=(None, 0))(params, joint_sample)
@@ -146,7 +146,7 @@ def get_eval_on_test_batch_with_further(
     # First copy and paste `get_eval_on_test_batch` function. Then additionally return log_w
     key, subkey = jax.random.split(key)
     x_augmented, log_p_a = flow.aux_target_sample_n_and_log_prob_apply(params.aux_target, x_test, subkey, K)
-    x_test = jax.tree_map(lambda x: jnp.repeat(x[None, ...], K, axis=0), x_test)
+    x_test = jax.tree_util.tree_map(lambda x: jnp.repeat(x[None, ...], K, axis=0), x_test)
     joint_sample = flow.separate_samples_to_joint(x_test.features, x_test.positions, x_augmented)
 
     log_q = jax.vmap(flow.log_prob_apply, in_axes=(None, 0))(params, joint_sample)
@@ -195,7 +195,7 @@ def eval_non_batched(params: AugmentedFlowParams, single_feature: chex.Array,
     n_batches = int(n_samples // inner_batch_size) + 1
 
     _, result = jax.lax.scan(forward, None, xs=jax.random.split(key, n_batches), length=n_batches)
-    result = jax.tree_map(lambda x: jnp.reshape(x, (x.shape[0]*x.shape[1], *x.shape[2:])), result)
+    result = jax.tree_util.tree_map(lambda x: jnp.reshape(x, (x.shape[0]*x.shape[1], *x.shape[2:])), result)
     x_positions, a_positions, log_prob_flow, log_p_x, log_p_a_given_x = result  # unpack.
 
     info = {}

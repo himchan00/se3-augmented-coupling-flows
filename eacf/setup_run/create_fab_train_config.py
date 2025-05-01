@@ -302,8 +302,8 @@ def create_train_config_pmap(cfg: DictConfig, target_log_p_x_fn, load_dataset, d
         per_device_keys = jax.random.split(per_device_key, n_devices)
         init_state = jax.pmap(init_single_device_fn)(common_keys, per_device_keys)
         # Run check to ensure params are synched.
-        chex.assert_trees_all_equal(jax.tree_map(lambda x: x[0], init_state.params),
-                                    jax.tree_map(lambda x: x[1], init_state.params))
+        chex.assert_trees_all_equal(jax.tree_util.tree_map(lambda x: x[0], init_state.params),
+                                    jax.tree_util.tree_map(lambda x: x[1], init_state.params))
         assert (init_state.key[0] != init_state.key[1]).all()  # Check rng per state is different.
         return init_state
 

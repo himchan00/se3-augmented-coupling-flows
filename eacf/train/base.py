@@ -19,20 +19,20 @@ def setup_padded_reshaped_data(data: chex.ArrayTree,
 
     padding_amount = (interval_length - test_set_size % interval_length) % interval_length
     test_data_padded_size = test_set_size + padding_amount
-    test_data_padded = jax.tree_map(
+    test_data_padded = jax.tree_util.tree_map(
         lambda x: jnp.concatenate([x, jnp.zeros((padding_amount, *x.shape[1:]), dtype=x.dtype)], axis=0), data
     )
     mask = jnp.zeros(test_data_padded_size, dtype=int).at[jnp.arange(test_set_size)].set(1)
 
 
     if reshape_axis == 0:  # Used for pmap.
-        test_data_reshaped, mask = jax.tree_map(
+        test_data_reshaped, mask = jax.tree_util.tree_map(
             lambda x: jnp.reshape(x, (interval_length, test_data_padded_size // interval_length, *x.shape[1:])),
             (test_data_padded, mask)
         )
     else:
         assert reshape_axis == 1  # for minibatching
-        test_data_reshaped, mask = jax.tree_map(
+        test_data_reshaped, mask = jax.tree_util.tree_map(
             lambda x: jnp.reshape(x, (test_data_padded_size // interval_length, interval_length, *x.shape[1:])),
             (test_data_padded, mask)
         )
@@ -96,7 +96,7 @@ def batchify_array(data: chex.Array, batch_size: int):
 
 
 def batchify_data(data: chex.ArrayTree, batch_size: int):
-    return jax.tree_map(lambda x: batchify_array(x, batch_size), data)
+    return jax.tree_util.tree_map(lambda x: batchify_array(x, batch_size), data)
 
 
 def get_leading_axis_tree(tree: chex.ArrayTree, n_dims: int = 1):
@@ -113,7 +113,7 @@ def get_shuffle_and_batchify_data_fn(train_data: chex.ArrayTree, batch_size: int
         batched_data = batchify_array(permutted_train_data, batch_size)
         return batched_data
 
-    return lambda key: jax.tree_map(
+    return lambda key: jax.tree_util.tree_map(
         lambda x: shuffle_and_batchify_data(x, key), train_data
     )
 
@@ -290,12 +290,12 @@ def eval_fn(
         if isinstance(batched_info, dict):
             # Aggregate test set info across batches.
             per_batch_weighting = jnp.sum(mask_batched, axis=-1) / jnp.sum(jnp.sum(mask_batched, axis=-1))
-            info.update(jax.tree_map(lambda x: jnp.sum(per_batch_weighting*x), batched_info))
+            info.update(jax.tree_util.tree_map(lambda x: jnp.sum(per_batch_weighting*x), batched_info))
             flat_mask, further_info = None, None
         else:
             per_batch_weighting = jnp.sum(mask_batched, axis=-1) / jnp.sum(jnp.sum(mask_batched, axis=-1))
-            info.update(jax.tree_map(lambda x: jnp.sum(per_batch_weighting * x), batched_info[1]))
-            flat_mask, further_info = jax.tree_map(lambda x: x.reshape(x.shape[0]*x.shape[1],
+            info.update(jax.tree_util.tree_map(lambda x: jnp.sum(per_batch_weighting * x), batched_info[1]))
+            flat_mask, further_info = jax.tree_util.tree_map(lambda x: x.reshape(x.shape[0]*x.shape[1],
                                                                         *x.shape[2:]), (mask_batched, batched_info[0]))
 
 

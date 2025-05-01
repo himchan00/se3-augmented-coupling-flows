@@ -124,7 +124,7 @@ class AlongVectorSplitCoupling(BijectorWithExtra):
             log_det_total = log_det_total + log_det
             chex.assert_shape(log_det_total, ())
 
-        extras = jax.tree_map(lambda *xs: jnp.stack(xs), *extras)
+        extras = jax.tree_util.tree_map(lambda *xs: jnp.stack(xs), *extras)
         extras = extras._replace(aux_info=extras.aggregate_info(),
                                  aux_loss=jnp.zeros(()))
         y2 = x2
@@ -154,7 +154,7 @@ class AlongVectorSplitCoupling(BijectorWithExtra):
             log_det_total = log_det_total + log_det
             chex.assert_shape(log_det_total, ())
 
-        extras = jax.tree_map(lambda *xs: jnp.stack(xs), *extras)
+        extras = jax.tree_util.tree_map(lambda *xs: jnp.stack(xs), *extras)
         extras = extras._replace(aux_info=extras.aggregate_info(),
                                  aux_loss=jnp.zeros(()))
         x2 = y2

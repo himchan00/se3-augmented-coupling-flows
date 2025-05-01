@@ -28,5 +28,5 @@ def get_samples_simple(log_prob_fn, key, n_vertices: int = 2, dim: int = 2, n_st
 
     _, positions = jax.lax.scan(one_step, init=state, xs=jax.random.split(rng_key, n_steps + n_warmup_steps))
     positions = positions[n_warmup_steps:]  # discard warmup positions
-    return jax.tree_map(lambda x: jnp.reshape(x, (x.shape[0] * x.shape[1], *x.shape[2:])), positions)
+    return jax.tree_util.tree_map(lambda x: jnp.reshape(x, (x.shape[0] * x.shape[1], *x.shape[2:])), positions)
 

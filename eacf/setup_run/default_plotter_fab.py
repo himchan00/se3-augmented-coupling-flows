@@ -93,7 +93,7 @@ def make_default_plotter(
         fig2, axs = plt.subplots(flow.n_augmented, n_plots, figsize=(5*n_plots, 5*flow.n_augmented))
         axs = axs[None] if flow.n_augmented == 1 else axs
         for i in range(flow.n_augmented):
-            counts = jax.tree_map(lambda x: x[i], count_list_a)
+            counts = jax.tree_util.tree_map(lambda x: x[i], count_list_a)
             plot_histogram_from_counts(counts, bins_a[i], axs[i, :], labels)
         fig2.suptitle('a samples', fontsize=16)
         fig2.tight_layout()
@@ -102,7 +102,7 @@ def make_default_plotter(
         fig3, axs = plt.subplots(flow.n_augmented, n_plots, figsize=(5 * n_plots, 5*flow.n_augmented))
         axs = axs[None] if flow.n_augmented == 1 else axs
         for i in range(flow.n_augmented):
-            counts = jax.tree_map(lambda x: x[i], count_list_a_minus_x)
+            counts = jax.tree_util.tree_map(lambda x: x[i], count_list_a_minus_x)
             plot_histogram_from_counts(counts, bins_a_minus_x[i], axs[i, :], labels)
         fig3.suptitle('a - x samples', fontsize=16)
         fig3.tight_layout()

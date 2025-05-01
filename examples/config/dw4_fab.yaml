@@ -46,6 +46,6 @@ logger:
   wandb:
     name: dw4_fab_${flow.type}
     project: fab
-    entity: flow-ais-bootstrap
+    entity: himchan00
     tags: [dw4,fab,Leucadendron1]
 

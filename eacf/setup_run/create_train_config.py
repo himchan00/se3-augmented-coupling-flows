@@ -354,8 +354,8 @@ def create_train_config_pmap(cfg: DictConfig, load_dataset, dim, n_nodes,
         per_device_keys = jax.random.split(per_device_key, n_devices)
         init_state = jax.pmap(init_fn_single_devices)(common_keys, per_device_keys)
         # Run check to ensure params are synched.
-        chex.assert_trees_all_equal(jax.tree_map(lambda x: x[0], init_state.params),
-                                    jax.tree_map(lambda x: x[1], init_state.params))
+        chex.assert_trees_all_equal(jax.tree_util.tree_map(lambda x: x[0], init_state.params),
+                                    jax.tree_util.tree_map(lambda x: x[1], init_state.params))
         assert (init_state.key[0] != init_state.key[1]).all()  # Check rng per state is different.
         return init_state
 
@@ -375,7 +375,7 @@ def create_train_config_pmap(cfg: DictConfig, load_dataset, dim, n_nodes,
         for i in range(batched_data.positions.shape[0]):
             x = batched_data[i]
             # Reshape to [n_devices, batch_size]
-            x = jax.tree_map(lambda x: jnp.reshape(x, (n_devices, cfg.training.batch_size, *x.shape[1:])), x)
+            x = jax.tree_util.tree_map(lambda x: jnp.reshape(x, (n_devices, cfg.training.batch_size, *x.shape[1:])), x)
             state, info = jax.pmap(step_function, axis_name=pmap_axis_name)(state, x)
         return state, get_from_first_device(info, as_numpy=False)
 

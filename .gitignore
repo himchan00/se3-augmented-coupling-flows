@@ -11,3 +11,8 @@ eacf/targets/target_energy/data/qm9_test.npy
 /outputs
 /examples/*./models/
 /hpc_scripts/
+*.txt
+wandb/
+*.wandb
+*.json
+*-info

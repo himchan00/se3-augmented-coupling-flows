@@ -4,6 +4,7 @@ import chex
 import distrax
 import haiku as hk
 import jax
+from jax import tree_util
 import jax.numpy as jnp
 
 from eacf.flow.distrax_with_extra import Extra, BijectorWithExtra
@@ -113,7 +114,7 @@ def create_flow(recipe: AugmentedFlowRecipe) -> AugmentedFlow:
         assert len(sample_shape) in (0, 1)
         if len(sample_shape) == 1:
             # Broadcast graph features to batch.
-            graph_features = jax.tree_map(lambda x: jnp.repeat(x[None, ...], sample_shape[0], axis=0),
+            graph_features = tree_util.tree_map(lambda x: jnp.repeat(x[None, ...], sample_shape[0], axis=0),
                                           graph_features)
         return FullGraphSample(positions=positions, features=graph_features)
 
@@ -176,7 +177,7 @@ def create_flow(recipe: AugmentedFlowRecipe) -> AugmentedFlow:
             return (y, log_det_prev + log_det), extra
 
         if layer_indices is not None:
-            params = jax.tree_map(lambda x: x[layer_indices[0]:layer_indices[1]], params)
+            params = tree_util.tree_map(lambda x: x[layer_indices[0]:layer_indices[1]], params)
         (y, log_det), extra = jax.lax.scan(scan_fn, init=(sample, jnp.zeros(sample.positions.shape[:-3])),
                                            xs=params,
                                            unroll=recipe.compile_n_unroll)
@@ -207,7 +208,7 @@ def create_flow(recipe: AugmentedFlowRecipe) -> AugmentedFlow:
         log_prob_shape = sample.positions.shape[:-3]
 
         if layer_indices is not None:
-            params = jax.tree_map(lambda x: x[layer_indices[0]:layer_indices[1]], params)
+            params = tree_util.tree_map(lambda x: x[layer_indices[0]:layer_indices[1]], params)
         (x, log_det), extra = jax.lax.scan(scan_fn, init=(sample, jnp.zeros(log_prob_shape)),
                                            xs=params,
                                            reverse=True, unroll=recipe.compile_n_unroll)
@@ -341,7 +342,7 @@ def create_flow(recipe: AugmentedFlowRecipe) -> AugmentedFlow:
                                                       sample.positions, sample_a)
         params_base = base_log_prob_fn.init(key3, sample_joint)
         params_bijector_single = bijector_inverse_and_log_det_single.init(key4, sample_joint)
-        params_bijectors = jax.tree_map(lambda x: jnp.repeat(x[None, ...], recipe.n_layers, axis=0),
+        params_bijectors = tree_util.tree_map(lambda x: jnp.repeat(x[None, ...], recipe.n_layers, axis=0),
                                         params_bijector_single)
         return AugmentedFlowParams(base=params_base, bijector=params_bijectors, aux_target=params_aux_target)
 

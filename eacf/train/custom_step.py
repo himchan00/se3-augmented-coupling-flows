@@ -121,8 +121,8 @@ def training_step_with_masking(
                                      in_axes=(0, None, 0, None))(
         key_batch, params, x, verbose_info
     )
-    grad = jax.tree_map(lambda x: mean_with_mask(x, masks), grads)
-    info = jax.tree_map(lambda x: mean_with_mask(x, masks), infos)
+    grad = jax.tree_util.tree_map(lambda x: mean_with_mask(x, masks), grads)
+    info = jax.tree_util.tree_map(lambda x: mean_with_mask(x, masks), infos)
     info.update(masked_points=jnp.sum(~masks))
 
     if use_pmap:

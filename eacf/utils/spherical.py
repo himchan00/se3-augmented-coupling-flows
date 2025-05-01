@@ -164,7 +164,7 @@ def _to_cartesian_and_log_det(sph_x: chex.Array, reference: chex.Array,
         y_axis_vector = y_axis_vector * pseudo_scalar
 
     r, theta, torsion = jnp.split(sph_x, 3)
-    r, theta, torsion = jax.tree_map(jnp.squeeze, (r, theta, torsion))
+    r, theta, torsion = jax.tree_util.tree_map(jnp.squeeze, (r, theta, torsion))
 
     vector_z_perp = x_axis_vector * jnp.cos(torsion) + y_axis_vector * jnp.sin(torsion)  # Should have norm of 1.
     vector = r*(z_axis_vector * jnp.cos(theta) + vector_z_perp * jnp.sin(theta))
