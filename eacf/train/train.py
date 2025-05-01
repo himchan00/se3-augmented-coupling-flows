@@ -100,6 +100,8 @@ def train(config: TrainConfig):
     if start_iter == 0:
         key, subkey = jax.random.split(key)
         eval_info = config.eval_and_plot_fn(state, subkey, -1, config.save, plots_dir)
+        if config.resume:
+            return # early exit after sample generation
         eval_info.update(iteration=-1)
         config.logger.write(eval_info)
         print(f"initial model eval complete, eval info: \n {eval_info}")

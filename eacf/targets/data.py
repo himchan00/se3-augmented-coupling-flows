@@ -23,12 +23,16 @@ def load_dw4(
         path = here / "data"
     path = Path(path)
     fpath = path / "dw4-dataidx.npy"
+    val_path = path / "val_DW4_1000.npy"
     dataset = jnp.asarray(np.load(fpath, allow_pickle=True)[0], dtype=float)
     dataset = jnp.reshape(dataset, (-1, 4, 2))
+    val_data = jnp.asarray(np.load(val_path, allow_pickle=True), dtype=float)
+    assert len(val_data) == 1000
 
+    val_set = jnp.reshape(val_data, (-1, 4, 2))
     train_set = dataset[:train_set_size]
-    val_set = dataset[-test_set_size - val_set_size : -test_set_size]
-    test_set = dataset[-test_set_size:]
+    test_set = jnp.zeros((10000, 4, 2), dtype=float) # Dummy
+
     return (
         positional_dataset_only_to_full_graph(train_set),
         positional_dataset_only_to_full_graph(val_set),
@@ -72,21 +76,50 @@ def load_lj13(
     path = Path(path)
     fpath_train = path / "holdout_data_LJ13.npy"
     fpath_idx = path / "idx_LJ13.npy"
-    fpath_val_test = path / "all_data_LJ13.npy"
+    fpath_val = path / "val_LJ13_1000.npy"
 
     train_data = jnp.asarray(np.load(fpath_train, allow_pickle=True), dtype=float)
     idxs = jnp.asarray(np.load(fpath_idx, allow_pickle=True), dtype=int)
-    val_test_data = jnp.asarray(np.load(fpath_val_test, allow_pickle=True), dtype=float)
-
-    val_data = val_test_data[1000:2000]
-    test_data = val_test_data[:1000]
+    val_data = jnp.asarray(np.load(fpath_val, allow_pickle=True), dtype=float)
+    assert len(val_data) == 1000
 
     assert train_set_size <= len(idxs)
     train_data = train_data[idxs[:train_set_size]]
 
     val_data = jnp.reshape(val_data, (-1, 13, 3))
-    test_data = jnp.reshape(test_data, (-1, 13, 3))
+    test_data = jnp.zeros((10000, 13, 3), dtype=float) # Dummy
     train_data = jnp.reshape(train_data, (-1, 13, 3))
+
+    return (
+        positional_dataset_only_to_full_graph(train_data),
+        positional_dataset_only_to_full_graph(val_data),
+        positional_dataset_only_to_full_graph(test_data),
+    )
+
+
+def load_lj55(
+    train_set_size: int = 1000, path: Optional[Union[Path, str]] = None
+) -> Tuple[FullGraphSample, FullGraphSample, FullGraphSample]:
+    # dataset from https://github.com/vgsatorras/en_flows
+    # Loading following https://github.com/vgsatorras/en_flows/blob/main/dw4_experiment/dataset.py.
+
+    # Train data
+    if path is None:
+        here = Path(__file__).parent
+        path = here / "data"
+    path = Path(path)
+    fpath_train = path / "train_split_LJ55-1000-part1.npy"
+    fpath_val = path / "val_LJ55_1000.npy"
+
+    train_data = jnp.asarray(np.load(fpath_train, allow_pickle=True), dtype=float)
+    val_data = jnp.asarray(np.load(fpath_val, allow_pickle=True), dtype=float)
+    assert len(val_data) == 1000
+
+    train_data = train_data[:train_set_size]
+
+    val_data = jnp.reshape(val_data, (-1, 55, 3))
+    test_data = jnp.zeros((10000, 55, 3), dtype=float) # Dummy
+    train_data = jnp.reshape(train_data, (-1, 55, 3))
 
     return (
         positional_dataset_only_to_full_graph(train_data),

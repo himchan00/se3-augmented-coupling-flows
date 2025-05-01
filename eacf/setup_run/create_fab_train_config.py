@@ -115,7 +115,6 @@ def create_train_config_non_pmap(cfg: DictConfig, target_log_p_x_fn, load_datase
                 ais=smc,
                 log_p_x=target_log_p_x_fn,
                 n_samples_from_flow=cfg.training.plot_batch_size,
-                max_n_samples=1000,
                 max_distance=20.)
 
     features = train_data.features[0]
@@ -269,7 +268,6 @@ def create_train_config_pmap(cfg: DictConfig, target_log_p_x_fn, load_dataset, d
                 ais=smc,
                 log_p_x=target_log_p_x_fn,
                 n_samples_from_flow=cfg.training.plot_batch_size,
-                max_n_samples=1000,
                 max_distance=20.)
 
     features = train_data.features[0]

@@ -6,14 +6,15 @@ from eacf.setup_run.create_fab_train_config import create_train_config
 from eacf.train.train import train
 from eacf.targets.data import load_lj13
 from eacf.targets.target_energy.leonard_jones import log_prob_fn
+from functools import partial
 
 
-def load_dataset(train_set_size: int, valid_set_size: int, final_run: bool = True):
+def load_dataset(train_set_size: int, valid_set_size: int, final_run: bool = False):
     train, valid, test = load_lj13(train_set_size)
     if not final_run:
-        return train, valid[:valid_set_size]
+        return train, valid
     else:
-        return train, test[:valid_set_size]
+        return train, test
 
 def to_local_config(cfg: DictConfig) -> DictConfig:
     """Change config to make it fast to run locally. Also remove saving."""
@@ -55,7 +56,7 @@ def run(cfg: DictConfig):
                                             target_log_p_x_fn=log_prob_fn,
                                             dim=3,
                                             n_nodes=13,
-                                            load_dataset=load_dataset,
+                                            load_dataset=partial(load_dataset, final_run = cfg.training.resume),
                                             date_folder=False)
     train(experiment_config)
 

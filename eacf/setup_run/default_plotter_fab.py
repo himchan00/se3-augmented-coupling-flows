@@ -56,17 +56,23 @@ def make_default_plotter(
     def get_data_for_plotting(state: Union[TrainStateNoBuffer, TrainStateWithBuffer],
                               key: chex.PRNGKey, test_data=test_data[:max_n_samples]):
         pos_x_target = test_data.positions
-
+        target_batch = pos_x_target.shape[0]
         params = state.params
         key1, key2 = jax.random.split(key)
         # Get samples from flow and AIS.
-        flow_samples, ais_samples, log_w = ais_forward(state.params, state.smc_state, key1)[:3]
-
-        # Process samples.
-        pos_x_flow, pos_a_flow, a_min_x_flow = process_samples(flow_samples)
-        pos_x_ais, pos_a_ais, a_min_x_ais = process_samples(ais_samples)
-        pos_a_target = flow.aux_target_sample_n_apply(params.aux_target, test_data, key2)
-        a_min_x_target = pos_a_target - pos_x_target[:, :, None]
+        # target_batch_size == gen_batch_size
+        assert target_batch % n_samples == 0
+        n_gen = target_batch // n_samples
+        l_pos_x_ais = []
+        for i in range(n_gen):
+            flow_samples, ais_samples, log_w = ais_forward(state.params, state.smc_state, key1)[:3]
+            # Process samples.
+            pos_x_flow, pos_a_flow, a_min_x_flow = process_samples(flow_samples)
+            pos_x_ais, pos_a_ais, a_min_x_ais = process_samples(ais_samples)
+            pos_a_target = flow.aux_target_sample_n_apply(params.aux_target, test_data, key2)
+            a_min_x_target = pos_a_target - pos_x_target[:, :, None]
+            l_pos_x_ais.append(pos_x_ais)
+        pos_x_ais = jnp.concatenate(l_pos_x_ais, axis=0)
 
         # Get bins and counts
         bins_x, count_list_x = bin_samples_by_dist([pos_x_flow, pos_x_ais, pos_x_target], max_distance)
@@ -87,6 +93,11 @@ def make_default_plotter(
 
         gen_sample = torch.from_numpy(np.array(gen_sample))
         gt_sample = torch.from_numpy(np.array(gt_sample))
+        print(f'gen_sample shape: {gen_sample.shape}')
+        print(f'gt_sample shape: {gt_sample.shape}')
+        # Heuristic to detect sample generation mode (not training)
+        if len(gen_sample) == 10000: 
+            torch.save(gen_sample, 'gen_sample.pt')
         # Compute the pairwise interatomic distances
         tvd = Atomic_TVD_particle(gen_sample, gt_sample)
         print(f'Total variation distance: {tvd}')

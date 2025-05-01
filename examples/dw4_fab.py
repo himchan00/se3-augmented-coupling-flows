@@ -8,25 +8,13 @@ from eacf.train.train import train
 from eacf.targets.data import load_dw4
 from eacf.setup_run.create_fab_train_config import create_train_config
 from eacf.targets.target_energy.double_well import make_dataset, log_prob_fn
-from eacf.utils.data import positional_dataset_only_to_full_graph
 
-def load_dataset_original(train_set_size: int, valid_set_size: int, final_run: bool = True):
+def load_dataset(train_set_size: int, valid_set_size: int, final_run: bool = False):
     train, valid, test = load_dw4(train_set_size)
     if not final_run:
-        return train, valid[:valid_set_size]
+        return train, valid
     else:
-        return train, test[:valid_set_size]
-
-def load_dataset_custom(batch_size, train_set_size: int = 1000, test_set_size:int = 1000, seed: int = 0,
-                        temperature: float = 1.0):
-    dataset = make_dataset(seed=seed, n_vertices=4, dim=2, n_samples=test_set_size+train_set_size,
-                           temperature=temperature)
-
-    train_set = dataset[:train_set_size]
-    train_set = train_set[:train_set_size - (train_set.shape[0] % batch_size)]
-
-    test_set = dataset[-test_set_size:]
-    return positional_dataset_only_to_full_graph(train_set), positional_dataset_only_to_full_graph(test_set)
+        return train, test
 
 
 def to_local_config(cfg: DictConfig) -> DictConfig:
@@ -78,13 +66,8 @@ def run(cfg: DictConfig):
         print("running locally")
         cfg = to_local_config(cfg)
 
-    if cfg.target.custom_samples:
-        print(f"loading custom dataset for temperature of {cfg.target.temperature}")
-        load_dataset = partial(load_dataset_custom, temperature=cfg.target.temperature)
-    else:
-        load_dataset = load_dataset_original
     experiment_config = create_train_config(cfg, target_log_p_x_fn=log_prob_fn,
-                                            dim=2, n_nodes=4, load_dataset=load_dataset,
+                                            dim=2, n_nodes=4, load_dataset=partial(load_dataset, final_run = cfg.training.resume),
                                             date_folder=False)
     train(experiment_config)
 

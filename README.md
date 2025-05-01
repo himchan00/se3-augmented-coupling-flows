@@ -1,3 +1,37 @@
+
+# VGS Baseline Experiment (Added)
+
+## Training
+
+To train the model, run the following commands:
+
+```shell
+python examples/dw4_fab.py
+python examples/lj13_fab.py
+python examples/lj55_fab.py
+```
+
+The model checkpoint with the lowest validation TVD will be saved in `{logger.wandb.name}/model_checkpoints`.
+
+
+## Sample Generation
+
+To generate 10k samples from the trained model, first set:
+
+```yaml
+training.resume = True  # in config/training/default.yaml
+```
+Although this flag was originally intended for resuming training, here we repurpose it to enable sample generation from a saved checkpoint.
+
+Then run the same scripts:
+```shell
+python examples/dw4_fab.py
+python examples/lj13_fab.py
+python examples/lj55_fab.py
+```
+The generated samples will be saved as `gen_sample.pt` in the current directory.
+
+
 # SE(3) Equivariant Augmented Coupling Flows
 Code for the paper https://arxiv.org/abs/2308.10364. 
 Results can be obtained by running the commands in the [Experiments](#experiments) section.
