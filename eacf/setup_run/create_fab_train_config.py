@@ -73,6 +73,8 @@ def create_train_config_non_pmap(cfg: DictConfig, target_log_p_x_fn, load_datase
         save_path = os.path.join(training_config.pop("save_dir"), str(datetime.now().isoformat()))
     else:
         save_path = training_config.pop("save_dir")
+        name = cfg.logger.wandb.name
+        save_path = os.path.join(name, save_path)
     if cfg.training.save_in_wandb_dir and isinstance(logger, WandbLogger):
         save_path = os.path.join(wandb.run.dir, save_path)
 
@@ -148,32 +150,33 @@ def create_train_config_non_pmap(cfg: DictConfig, target_log_p_x_fn, load_datase
 
     if evaluation_fn is None and eval_and_plot_fn is None:
         # Setup eval functions
-        eval_on_test_batch_fn = partial(get_eval_on_test_batch_with_further,
-                                        flow=flow, K=cfg.training.K_marginal_log_lik, test_invariances=True,
-                                        target_log_prob=target_log_p_x_fn)
+        # eval_on_test_batch_fn = partial(get_eval_on_test_batch_with_further,
+        #                                 flow=flow, K=cfg.training.K_marginal_log_lik, test_invariances=True,
+        #                                 target_log_prob=target_log_p_x_fn)
 
-        # AIS with p as the target_energy. Note that step size params will have been tuned for alpha=2.
-        smc_eval = build_smc(transition_operator=transition_operator,
-                        n_intermediate_distributions=n_intermediate_distributions, spacing_type=spacing_type,
-                        alpha=1., use_resampling=False)
+        # # AIS with p as the target_energy. Note that step size params will have been tuned for alpha=2.
+        # smc_eval = build_smc(transition_operator=transition_operator,
+        #                 n_intermediate_distributions=n_intermediate_distributions, spacing_type=spacing_type,
+        #                 alpha=1., use_resampling=False)
 
         @jax.jit
         def evaluation_fn(state: Union[TrainStateNoBuffer, TrainStateWithBuffer], key: chex.PRNGKey) -> dict:
-            eval_info, log_w_test_data, flat_mask = eval_fn(test_data, key, state.params,
-                    eval_on_test_batch_fn=eval_on_test_batch_fn,
-                    eval_batch_free_fn=None,
-                    batch_size=cfg.training.eval_batch_size)
-            further_info = calculate_forward_ess(log_w_test_data, flat_mask)
-            eval_info.update(further_info)
-            eval_info_fab = fab_eval_function(
-                state=state, key=key, flow=flow,
-                smc=smc_eval,
-                log_p_x=target_log_p_x_fn,
-                features=train_data.features[0],
-                batch_size=cfg.fab.eval_total_batch_size,
-                inner_batch_size=cfg.fab.eval_inner_batch_size
-            )
-            eval_info.update(eval_info_fab)
+            # eval_info, log_w_test_data, flat_mask = eval_fn(test_data, key, state.params,
+            #         eval_on_test_batch_fn=eval_on_test_batch_fn,
+            #         eval_batch_free_fn=None,
+            #         batch_size=cfg.training.eval_batch_size)
+            # further_info = calculate_forward_ess(log_w_test_data, flat_mask)
+            # eval_info.update(further_info)
+            # eval_info_fab = fab_eval_function(
+            #     state=state, key=key, flow=flow,
+            #     smc=smc_eval,
+            #     log_p_x=target_log_p_x_fn,
+            #     features=train_data.features[0],
+            #     batch_size=cfg.fab.eval_total_batch_size,
+            #     inner_batch_size=cfg.fab.eval_inner_batch_size
+            # )
+            # eval_info.update(eval_info_fab)
+            eval_info = {}
             return eval_info
 
     if eval_and_plot_fn is None and (plotter is not None or evaluation_fn is not None):
@@ -312,45 +315,46 @@ def create_train_config_pmap(cfg: DictConfig, target_log_p_x_fn, load_dataset, d
         return state, get_from_first_device(info, as_numpy=False)
 
     if evaluation_fn is None and eval_and_plot_fn is None:
-        # Setup eval functions
-        eval_on_test_batch_fn = partial(get_eval_on_test_batch_with_further,
-                                        flow=flow, K=cfg.training.K_marginal_log_lik, test_invariances=True,
-                                        target_log_prob=target_log_p_x_fn)
+        # # Setup eval functions
+        # eval_on_test_batch_fn = partial(get_eval_on_test_batch_with_further,
+        #                                 flow=flow, K=cfg.training.K_marginal_log_lik, test_invariances=True,
+        #                                 target_log_prob=target_log_p_x_fn)
 
-        # AIS with p as the target_energy. Note that step size params will have been tuned for alpha=2.
-        smc_eval = build_smc(transition_operator=transition_operator,
-                        n_intermediate_distributions=n_intermediate_distributions, spacing_type=spacing_type,
-                        alpha=1., use_resampling=False)
+        # # AIS with p as the target_energy. Note that step size params will have been tuned for alpha=2.
+        # smc_eval = build_smc(transition_operator=transition_operator,
+        #                 n_intermediate_distributions=n_intermediate_distributions, spacing_type=spacing_type,
+        #                 alpha=1., use_resampling=False)
 
-        def evaluation_fn_single_device(state: TrainStateWithBuffer, key: chex.PRNGKey,
-                                        x_test: FullGraphSample, test_mask: chex.Array) -> \
-                Tuple[dict, chex.Array, chex.Array]:
-            eval_info, log_w_test, flat_mask = eval_fn(x_test, key, state.params,
-                                eval_on_test_batch_fn=eval_on_test_batch_fn,
-                                eval_batch_free_fn=None,
-                                batch_size=cfg.training.eval_batch_size,
-                                mask=test_mask)
-            eval_info_fab = fab_eval_function(
-                state=state, key=key, flow=flow,
-                smc=smc_eval,
-                log_p_x=target_log_p_x_fn,
-                features=train_data.features[0],
-                batch_size=cfg.fab.eval_total_batch_size,
-                inner_batch_size=cfg.fab.eval_inner_batch_size
-            )
-            eval_info.update(eval_info_fab)
-            eval_info = jax.lax.pmean(eval_info, axis_name=pmap_axis_name)
-            return eval_info, log_w_test, flat_mask
+        # def evaluation_fn_single_device(state: TrainStateWithBuffer, key: chex.PRNGKey,
+        #                                 x_test: FullGraphSample, test_mask: chex.Array) -> \
+        #         Tuple[dict, chex.Array, chex.Array]:
+        #     eval_info, log_w_test, flat_mask = eval_fn(x_test, key, state.params,
+        #                         eval_on_test_batch_fn=eval_on_test_batch_fn,
+        #                         eval_batch_free_fn=None,
+        #                         batch_size=cfg.training.eval_batch_size,
+        #                         mask=test_mask)
+        #     eval_info_fab = fab_eval_function(
+        #         state=state, key=key, flow=flow,
+        #         smc=smc_eval,
+        #         log_p_x=target_log_p_x_fn,
+        #         features=train_data.features[0],
+        #         batch_size=cfg.fab.eval_total_batch_size,
+        #         inner_batch_size=cfg.fab.eval_inner_batch_size
+        #     )
+        #     eval_info.update(eval_info_fab)
+        #     eval_info = jax.lax.pmean(eval_info, axis_name=pmap_axis_name)
+        #     return eval_info, log_w_test, flat_mask
 
-        test_data_per_device, test_mask = setup_padded_reshaped_data(test_data, n_devices)
+        # test_data_per_device, test_mask = setup_padded_reshaped_data(test_data, n_devices)
 
         def evaluation_fn(state: TrainStateWithBuffer, key: chex.PRNGKey) -> dict:
-            keys = jax.random.split(key, n_devices)
-            info, log_w_test, mask = jax.pmap(evaluation_fn_single_device, axis_name=pmap_axis_name)(
-                state, keys, test_data_per_device, test_mask)
-            info = get_from_first_device(info, as_numpy=True)
-            further_info = calculate_forward_ess(log_w_test.flatten(), mask=mask.flatten())
-            info.update(further_info)
+            # keys = jax.random.split(key, n_devices)
+            # info, log_w_test, mask = jax.pmap(evaluation_fn_single_device, axis_name=pmap_axis_name)(
+            #     state, keys, test_data_per_device, test_mask)
+            # info = get_from_first_device(info, as_numpy=True)
+            # further_info = calculate_forward_ess(log_w_test.flatten(), mask=mask.flatten())
+            # info.update(further_info)
+            info = {}
             return info
 
     # Plot single device.

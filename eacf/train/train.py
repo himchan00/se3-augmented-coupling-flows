@@ -90,12 +90,9 @@ def train(config: TrainConfig):
     if config.resume:
         latest_cp = get_latest_checkpoint(checkpoints_dir, key="state_")
         if latest_cp:
-            start_iter = int(latest_cp[-12:-4]) + 1
             with open(latest_cp, "rb") as f:
                 state = pickle.load(f)
             print(f"loaded checkpoint {latest_cp}")
-            if not config.save_state_all_devices and len(jax.devices()) > 1:
-                state = jax.pmap(lambda key_: state.__class__(state.params, state.opt_state, key_))(jax.random.split(key, len(jax.devices())))
         else:
             print("no checkpoint found, starting training from scratch")
 
@@ -108,7 +105,7 @@ def train(config: TrainConfig):
         print(f"initial model eval complete, eval info: \n {eval_info}")
 
     pbar = tqdm(range(start_iter, config.n_iteration))
-
+    tvd_best = np.inf
     for iteration in pbar:
         state, info = config.update_state(state)
 
@@ -132,34 +129,18 @@ def train(config: TrainConfig):
             eval_info.update(iteration=iteration)
             pbar.write(str(eval_info))
             config.logger.write(eval_info)
-
-        if iteration in checkpoint_iter and config.save:
-            checkpoint_path = os.path.join(
-                checkpoints_dir, "state_%08i.pkl" % iteration
-            )
-            with open(checkpoint_path, "wb") as f:
-                if not config.save_state_all_devices and len(jax.devices()) > 1:
-                    state_first = jax.tree_util.tree_map(lambda x: x[0], state)
-                    pickle.dump(state_first, f)
-                else:
-                    pickle.dump(state, f)
-
-            if (
-                config.runtime_limit
-                and iteration > start_iter
-                and np.any(checkpoint_iter_np > iteration)
-            ):
-                next_checkpoint_iter = np.min(
-                    checkpoint_iter_np[checkpoint_iter_np > iteration]
+            tvd = eval_info["tvd"]
+            if tvd < tvd_best:
+                tvd_best = tvd
+                print(f"new best model with tvd: {tvd_best}")
+                checkpoint_path = os.path.join(
+                    checkpoints_dir, "state_%08i.pkl" % iteration
                 )
-                time_diff = (time.time() - start_time) / 3600
-                if (
-                    time_diff
-                    * (next_checkpoint_iter - start_iter)
-                    / (iteration - start_iter)
-                    > config.runtime_limit
-                ):
-                    break
+                with open(checkpoint_path, "wb") as f:
+                        pickle.dump(state, f)
+                        print(f"saved checkpoint to {checkpoint_path}")
+                with open(checkpoints_dir + "/best_model.txt", "a") as f:
+                    f.write(f"iteration: {iteration}, tvd: {tvd}\n")
 
     if isinstance(config.logger, ListLogger):
         plot_history(config.logger.history)

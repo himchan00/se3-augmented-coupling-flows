@@ -25,7 +25,7 @@ def get_eval_and_plot_fn(
     def eval_and_plot_fn(state, key, iteration, save, plots_dir):
         if plotter is not None:
             key, subkey = jax.random.split(key)
-            plot_and_maybe_save(
+            tvd = plot_and_maybe_save(
                 plotter,
                 state,
                 subkey,
@@ -33,7 +33,6 @@ def get_eval_and_plot_fn(
                 save,
                 plots_dir,
             )
-        if eval_state is not None:
-            return eval_state(state, key)
+        return tvd
 
     return eval_and_plot_fn

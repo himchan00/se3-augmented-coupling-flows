@@ -16,3 +16,5 @@ wandb/
 *.wandb
 *.json
 *-info
+*.pkl
+*.png

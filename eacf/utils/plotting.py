@@ -21,7 +21,7 @@ def plot_and_maybe_save(
     save: bool,
     plots_dir: str,
 ):
-    figures = plotter(state, key)
+    figures, tvd = plotter(state, key)
     for j, figure in enumerate(figures):
         if save:
             figure.savefig(
@@ -30,6 +30,7 @@ def plot_and_maybe_save(
         else:
             plt.show()
         plt.close(figure)
+    return tvd
 
 
 def plot_history(history):

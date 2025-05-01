@@ -5,7 +5,7 @@ n_eval: 20
 K_marginal_log_lik: 20
 save: true
 save_dir: ''
-save_in_wandb_dir: true # Save in temp wandb directory, which then ensures it get's uploaded after the run.
+save_in_wandb_dir: false # Save in temp wandb directory, which then ensures it get's uploaded after the run.
 resume: false
 runtime_limit: null
 use_flow_aux_loss: true

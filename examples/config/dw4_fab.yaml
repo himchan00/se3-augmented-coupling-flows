@@ -27,8 +27,8 @@ flow:
 training:
   n_epoch: 20000
   batch_size: 128
-  plot_batch_size: 256
-  eval_batch_size: 16
+  plot_batch_size: 1000 # We evaluate tvd with validation set on this many samples.
+  eval_batch_size: 16 # Not used
   seed: 0
   train_set_size: 1000
   test_set_size: 1000

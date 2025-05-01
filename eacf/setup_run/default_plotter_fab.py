@@ -6,6 +6,8 @@ import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import numpy as np
+import torch
 
 from eacf.utils.plotting import bin_samples_by_dist
 
@@ -72,7 +74,7 @@ def make_default_plotter(
                                         )([pos_a_flow, pos_a_ais, pos_a_target], max_distance)
         bins_a_minus_x, count_list_a_minus_x = jax.vmap(bin_samples_by_dist, in_axes=(-2, None), out_axes=0)(
             [a_min_x_flow, a_min_x_ais, a_min_x_target], max_distance)
-        return bins_x, count_list_x, bins_a, count_list_a, bins_a_minus_x, count_list_a_minus_x
+        return bins_x, count_list_x, bins_a, count_list_a, bins_a_minus_x, count_list_a_minus_x, pos_x_ais, pos_x_target
 
 
     def default_plotter(state: TrainStateNoBuffer, key: chex.PRNGKey) -> dict:
@@ -80,8 +82,14 @@ def make_default_plotter(
         n_plots = len(labels) - 1
 
         # Plot interatomic distance histograms.
-        bins_x, count_list_x, bins_a, count_list_a, bins_a_minus_x, count_list_a_minus_x = \
+        bins_x, count_list_x, bins_a, count_list_a, bins_a_minus_x, count_list_a_minus_x, gen_sample, gt_sample = \
             get_data_for_plotting(state, key)
+
+        gen_sample = torch.from_numpy(np.array(gen_sample))
+        gt_sample = torch.from_numpy(np.array(gt_sample))
+        # Compute the pairwise interatomic distances
+        tvd = Atomic_TVD_particle(gen_sample, gt_sample)
+        print(f'Total variation distance: {tvd}')
 
         # Plot original coords
         fig1, axs = plt.subplots(1, n_plots, figsize=(5*n_plots, 5))
@@ -107,6 +115,34 @@ def make_default_plotter(
         fig3.suptitle('a - x samples', fontsize=16)
         fig3.tight_layout()
 
-        return [fig1, fig2, fig3]
+        return [fig1, fig2, fig3], {'tvd': tvd}
 
     return default_plotter
+
+
+# Added for evaluation
+
+def Atomic_TVD_particle(gen_sample, gt_sample):
+    gt_interatomic = interatomic_dist(gt_sample).detach().cpu()
+    gen_interatomic = interatomic_dist(gen_sample).detach().cpu()
+    return total_variation_distance(gen_interatomic, gt_interatomic)
+
+
+def interatomic_dist(x):
+    batchsize, n_particles, n_dim = x.shape
+    distances = x[:, None, :, :] - x[:, :, None, :]
+    distances = distances[:, torch.triu(torch.ones((n_particles, n_particles)), diagonal=1) == 1,]
+    dist = torch.linalg.norm(distances, dim=-1)
+    return dist
+
+
+def total_variation_distance(samples1, samples_test, bins=200):
+    H_data_set, x_data_set = np.histogram(samples_test, bins=bins)
+    H_generated_samples, _ = np.histogram(samples1, bins=(x_data_set))
+    total_var = (
+        0.5
+        * np.abs(
+            H_data_set / H_data_set.sum() - H_generated_samples / H_generated_samples.sum()
+        ).sum()
+    )
+    return total_var

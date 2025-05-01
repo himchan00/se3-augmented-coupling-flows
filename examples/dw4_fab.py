@@ -85,7 +85,7 @@ def run(cfg: DictConfig):
         load_dataset = load_dataset_original
     experiment_config = create_train_config(cfg, target_log_p_x_fn=log_prob_fn,
                                             dim=2, n_nodes=4, load_dataset=load_dataset,
-                                            date_folder=True)
+                                            date_folder=False)
     train(experiment_config)
 
 
