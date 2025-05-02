@@ -228,6 +228,8 @@ def create_train_config_pmap(cfg: DictConfig, target_log_p_x_fn, load_dataset, d
         save_path = os.path.join(training_config.pop("save_dir"), str(datetime.now().isoformat()))
     else:
         save_path = training_config.pop("save_dir")
+        name = cfg.logger.wandb.name
+        save_path = os.path.join(name, save_path)
     if cfg.training.save_in_wandb_dir and isinstance(logger, WandbLogger):
         save_path = os.path.join(wandb.run.dir, save_path)
 
