@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 import torch
-
+import os
 from eacf.utils.plotting import bin_samples_by_dist
 
 from eacf.train.fab_train_no_buffer import SequentialMonteCarloSampler, build_smc_forward_pass, LogProbFn, TrainStateNoBuffer
@@ -96,8 +96,12 @@ def make_default_plotter(
         print(f'gen_sample shape: {gen_sample.shape}')
         print(f'gt_sample shape: {gt_sample.shape}')
         # Heuristic to detect sample generation mode (not training)
-        if len(gen_sample) == 10000: 
-            torch.save(gen_sample, 'gen_sample.pt')
+        if len(gen_sample) == 10000:
+            i = 0
+            while os.path.exists(f'gen_sample_{gen_sample.shape}_{i}.pt'):
+                i += 1
+                # Increment the file name if it already exists
+            torch.save(gen_sample, f'gen_sample_{gen_sample.shape}_{i}.pt')
         # Compute the pairwise interatomic distances
         tvd = Atomic_TVD_particle(gen_sample, gt_sample)
         print(f'Total variation distance: {tvd}')
