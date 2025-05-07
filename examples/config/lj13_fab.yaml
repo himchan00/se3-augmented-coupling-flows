@@ -20,7 +20,7 @@ flow:
 
 training:
   n_epoch: 14000 # approx how many iter we can do in the training time
-  batch_size: 128 # Note per device if multiple devices used.
+  batch_size: 128 # Note per device if multiple devices used. Originally 1024, but lowered to 128 for memory reasons.
   use_multiple_devices: true
   plot_batch_size: 200 # We evaluate tvd using 1000 samples. n_gen = 1000 // plot_batch_size
   eval_batch_size: 16 # Not used
@@ -36,7 +36,7 @@ logger:
 #  pandas_logger:
 #    save_period: 1000 # how often to save the pandas dataframe as a csv
   wandb:
-    name: lj13_fab_${flow.type}
+    name: lj13_fab_${flow.type}_${training.seed}
     project: fab
     entity: himchan00
     tags: [lj13,fab,Leucadendron]

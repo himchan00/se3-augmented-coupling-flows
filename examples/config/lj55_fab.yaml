@@ -19,10 +19,10 @@ flow:
   nodes: 55
 
 training:
-  n_epoch: 14000 # approx how many iter we can do in the training time
-  batch_size: 1024 # Note per device if multiple devices used.
+  n_epoch: 5000 # approx how many iter we can do in the training time (Lowered than LJ13 as best model was found at 700 epoch)
+  batch_size: 4 # Note per device if multiple devices used.
   use_multiple_devices: true
-  plot_batch_size: 1000 # We evaluate tvd using 1000 samples. n_gen = 1000 // plot_batch_size
+  plot_batch_size: 10 # We evaluate tvd using 1000 samples. n_gen = 1000 // plot_batch_size
   eval_batch_size: 16 # Not used
   seed: 0
   train_set_size: 1000
@@ -36,7 +36,7 @@ logger:
 #  pandas_logger:
 #    save_period: 1000 # how often to save the pandas dataframe as a csv
   wandb:
-    name: lj55_fab_${flow.type}
+    name: lj55_fab_${flow.type}_${training.seed}
     project: fab
     entity: himchan00
     tags: [lj13,fab,Leucadendron]
